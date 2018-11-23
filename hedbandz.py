@@ -68,8 +68,14 @@ def dump_cards_to_json():
     out = {}
     for word, props in df.iterrows():
         out[word] = props.index.values[props == 1].tolist()
-    with open('cards.json', 'w') as f_cards:
+    with open('cards_to_props.json', 'w') as f_cards:
         json.dump(out, f_cards, indent=4)
+    out = {}
+    for col in df.columns.values:
+        out[col] = df.index.values[df.loc[:, col] == 1].tolist()
+    with open('props_to_cards.json', 'w') as f_cards:
+        json.dump(out, f_cards, indent=4)
+
     with open('questions.json', 'w') as f_q:
         json.dump(df.columns.values.tolist(), f_q, indent=4)
 
