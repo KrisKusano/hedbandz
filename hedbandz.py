@@ -1,7 +1,8 @@
+import copy
 from enum import Enum
-import numpy as np
-from typing import Set, Tuple, List
+from typing import Tuple, List
 
+import numpy as np
 import pandas as pd
 
 WORD_ALIVE_COL = 'word_alive'
@@ -67,11 +68,19 @@ def dump_cards_to_json():
 
 def auto_solve(df: pd.DataFrame,
                word: str,
-               max_tries: int=20):
+               max_tries: int=20) -> Tuple[str, int]:
+    """
+    Automatically solve for a word
+
+    :param df: cards CSV
+    :param word: the word to solve (should be in index of df)
+    :param max_tries: maximum tries (questions) before giving up
+    :return: answer_word, n_tries
+    """
     next_q = ''
     count = 0
     failed = False
-    while(True):
+    while True:
         if count >= max_tries:
             failed = True
             break
@@ -86,18 +95,39 @@ def auto_solve(df: pd.DataFrame,
         print('Question: {}, Answer: {}'.format(next_q, answer))
         count += 1
 
+    n_alive = df.loc[:, WORD_ALIVE_COL].sum()
     if failed:
-        f_str = 'Failed to find an answer after {} tries'
-        raise ValueError(f_str.format(count))
-    return df.index.values[df.loc[:, WORD_ALIVE_COL]][0]
+        f_str = 'Failed to find an answer for "{}" after {} tries'
+        raise ValueError(f_str.format(word, count))
+    elif n_alive > 1:
+        f_str = 'Failed to find a unique answer for "{}"'
+        raise ValueError(f_str.format(word))
+    return df.index.values[df.loc[:, WORD_ALIVE_COL]][0], count
 
 
-def unecessary_columns() -> List[str]:
+def unnecessary_columns() -> List[str]:
     """
     Find columns that are not needed to have a unique solution
     :return:
     """
-    pass
+    df = load_cards(CARDS_CSV)
+    remove_cols = []
+    for col in df.columns.values:
+        df_i = copy.deepcopy(df)
+        df_i = df_i.drop(col, axis=1)
+        necessary = False
+        for word, _ in df_i.iterrows():
+            try:
+                solve_ans, solve_count = auto_solve(df_i, word)
+                assert solve_ans == word
+            except (ValueError, AssertionError):
+                necessary = True
+                break
+
+        if not necessary:
+            remove_cols.append(col)
+
+    return remove_cols
 
 
 def play():
@@ -106,7 +136,7 @@ def play():
     """
     df = load_cards(CARDS_CSV)
     next_q = ''
-    while(True):
+    while True:
         if next_q:
             f_str = 'Am I (a) {} (1 = yes, 0 = no, 2 = maybe/could be): '
             text_in = input(f_str.format(next_q))
@@ -115,6 +145,7 @@ def play():
             except ValueError:
                 e_str = 'Invalid input "{}", try again...'
                 print(e_str.format(text_in))
+                answer = Response(0)
         else:
             answer = Response(0)
 
@@ -131,6 +162,7 @@ def play():
         elif n_alive == 0:
             e_str = 'Could not solve! :('
             raise ValueError(e_str)
+
 
 if __name__ == '__main__':
     play()

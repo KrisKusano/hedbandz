@@ -15,5 +15,5 @@ class TestHedbandz(TestCase):
         for object, props in self.df.iterrows():
             print('Starting: {}'.format(object))
             df = copy.deepcopy(self.df)
-            ans = auto_solve(df, object)
+            ans, _ = auto_solve(df, object)
             self.assertTrue(object, ans)
