@@ -1,5 +1,6 @@
 import copy
 from enum import Enum
+import json
 from typing import Tuple, List
 
 import numpy as np
@@ -63,7 +64,14 @@ def dump_cards_to_json():
     """
     Dump attributes to JSON
     """
-    df = load_cards('cards')
+    df = load_cards(CARDS_CSV)
+    out = {}
+    for word, props in df.iterrows():
+        out[word] = props.index.values[props == 1].tolist()
+    with open('cards.json', 'w') as f_cards:
+        json.dump(out, f_cards, indent=4)
+    with open('questions.json', 'w') as f_q:
+        json.dump(df.columns.values.tolist(), f_q, indent=4)
 
 
 def auto_solve(df: pd.DataFrame,
